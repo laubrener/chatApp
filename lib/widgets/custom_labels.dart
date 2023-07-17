@@ -20,7 +20,7 @@ class _LoginLabelsState extends State<LoginLabels> {
         children: [
           Text(
             widget.text,
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w300),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w300),
           ),
           TextButton(
               onPressed: () {

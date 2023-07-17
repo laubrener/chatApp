@@ -13,8 +13,8 @@ class Logo extends StatelessWidget {
         width: 150,
         child: Column(
           children: [
-            Image(image: AssetImage("assets/Chat-Logo.png")),
-            Text(title, style: TextStyle(fontSize: 30))
+            const Image(image: AssetImage("assets/Chat-Logo.png")),
+            Text(title, style: const TextStyle(fontSize: 30))
           ],
         ),
       ),
