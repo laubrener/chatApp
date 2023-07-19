@@ -1,5 +1,7 @@
-import 'package:chat_app/models/users.dart';
+import 'package:chat_app/models/user_model.dart';
+import 'package:chat_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class UsersPage extends StatefulWidget {
@@ -19,12 +21,15 @@ class _UsersPageState extends State<UsersPage> {
   ];
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.user;
     return Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'My name',
-            style: TextStyle(color: Colors.black87),
+          title: Text(
+            user.name,
+            style: const TextStyle(color: Colors.black87),
           ),
+          centerTitle: true,
           elevation: 1,
           backgroundColor: Colors.white,
           leading: IconButton(
@@ -32,7 +37,10 @@ class _UsersPageState extends State<UsersPage> {
               Icons.exit_to_app,
               color: Colors.black87,
             ),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, 'login');
+              AuthService.deleteToken();
+            },
           ),
           actions: [
             Container(
@@ -73,9 +81,9 @@ class _UsersPageState extends State<UsersPage> {
 
   ListTile _userListTile(User user) {
     return ListTile(
-      title: Text(user.name!),
-      leading: CircleAvatar(child: Text(user.name!.substring(0, 2))),
-      subtitle: Text(user.email!),
+      title: Text(user.name),
+      leading: CircleAvatar(child: Text(user.name.substring(0, 2))),
+      subtitle: Text(user.email),
       trailing: Container(
         width: 10,
         height: 10,
