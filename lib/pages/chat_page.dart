@@ -1,8 +1,14 @@
 import 'dart:io';
 
-import 'package:chat_app/widgets/chat_message.dart';
+import 'package:chat_app/models/messages_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
+import 'package:chat_app/widgets/chat_message.dart';
+
+import '../services/auth_service.dart';
+import '../services/chat_service.dart';
+import '../services/socket_service.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -14,10 +20,59 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   final _textController = TextEditingController();
   final _focusNode = FocusNode();
+
+  ChatService chatService = ChatService();
+  SocketService socketService = SocketService();
+  AuthService authService = AuthService();
+
   final List<ChatMessage> _messages = [];
   bool isTexting = false;
   @override
+  void initState() {
+    super.initState();
+
+    chatService = Provider.of<ChatService>(context, listen: false);
+    socketService = Provider.of<SocketService>(context, listen: false);
+    authService = Provider.of<AuthService>(context, listen: false);
+
+    socketService.socket.on('personal-message', _listenToMessage);
+
+    _loadHistory(chatService.userTo.uid);
+  }
+
+  void _loadHistory(String userID) async {
+    List<Message>? chat = await chatService.getChat(userID);
+
+    print('chat: $chat');
+
+    final history = chat?.map((e) => ChatMessage(
+        text: e.message ?? '',
+        uid: e.from ?? '',
+        animationController: AnimationController(
+            vsync: this, duration: Duration(milliseconds: 0))
+          ..forward()));
+
+    setState(() {
+      _messages.insertAll(0, history ?? []);
+    });
+  }
+
+  void _listenToMessage(dynamic payload) {
+    ChatMessage message = ChatMessage(
+        text: payload['message'],
+        uid: payload['from'],
+        animationController: AnimationController(
+            vsync: this, duration: Duration(milliseconds: 300)));
+    setState(() {
+      _messages.insert(0, message);
+    });
+    message.animationController.forward();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final userTo = chatService.userTo;
+
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -26,14 +81,14 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               CircleAvatar(
                 backgroundColor: Colors.blue[100],
                 maxRadius: 14,
-                child: const Text(
-                  "Te",
-                  style: TextStyle(fontSize: 12),
+                child: Text(
+                  userTo.name.substring(0, 2),
+                  style: const TextStyle(fontSize: 12),
                 ),
               ),
               const SizedBox(height: 3),
-              const Text(
-                "Laura Brener",
+              Text(
+                userTo.name,
                 style: TextStyle(fontSize: 12, color: Colors.black87),
               )
             ],
@@ -118,7 +173,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _focusNode.requestFocus();
     final newMessage = ChatMessage(
       text: text,
-      uid: '123',
+      uid: authService.user.uid,
       animationController: AnimationController(
           vsync: this, duration: const Duration(milliseconds: 200)),
     );
@@ -127,6 +182,11 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
     setState(() {
       isTexting = false;
+      socketService.socket.emit('personal-message', {
+        'from': authService.user.uid,
+        'to': chatService.userTo.uid,
+        'message': text
+      });
     });
   }
 
@@ -135,6 +195,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     for (ChatMessage message in _messages) {
       message.animationController.dispose();
     }
+    socketService.socket.off('personal-message');
     super.dispose();
   }
 }
